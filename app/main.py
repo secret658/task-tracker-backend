@@ -6,6 +6,8 @@ from app.core.database import Base, engine
 #Base нужен чтобы создать таблицы, engine чтобы к чему подключаться
 from app.api.routes import auth, tasks, habits
 #добавили habits к существующему импорту
+from fastapi.middleware.cors import CORSMiddleware
+
 
 Base.metadata.create_all(bind=engine)
 #создает все таблицы в базе данных, если их еще нет
@@ -13,6 +15,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ТАСК ТРЕК API")
 #создаем сам объект приложения, title просто для документации
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 #подключаем роуты регистрации/логина, все пути будут начинаться с /auth
