@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ember — трекер задач</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  :root {
+    --ink: #15110E;
+    --panel: #1D1712;
+    --panel-raised: #241C16;
+    --border: #362A20;
+    --text: #F3ECE3;
+    --text-dim: #B8A99A;
+    --text-faint: #7A6C5D;
+    --ember-1: #C6401F;
+    --ember-2: #F0A93B;
+    --jade: #4FB3A0;
+    --jade-dim: #2E4A44;
+    --danger: #E0654A;
+    --radius: 14px;
+    --shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+  [data-theme="light"] {
+    --ink: #FBF6EF;
+    --panel: #FFFFFF;
+    --panel-raised: #FBF6EF;
+    --border: #E7DACB;
+    --text: #241C16;
+    --text-dim: #6E6153;
+    --text-faint: #A0937F;
+    --jade-dim: #DCEFEA;
+    --shadow: 0 20px 40px -24px rgba(90, 60, 30, 0.25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: "Public Sans", system-ui, sans-serif;
+    transition: background 0.25s ease, color 0.25s ease;
+    min-height: 100vh;
+  }
+  h1, h2, h3, .display { font-family: "Fraunces", serif; }
+  .mono { font-family: "IBM Plex Mono", monospace; letter-spacing: 0.02em; }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+  ::selection { background: var(--ember-2); color: var(--ink); }
+
+  .app-shell { max-width: 640px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  /* ---------- Auth screen ---------- */
+  .auth-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 30px;
+    box-shadow: var(--shadow);
+  }
+  .auth-mark {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--ember-1), var(--ember-2));
+    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .auth-card h1 { font-size: 26px; margin: 0 0 6px; font-weight: 600; }
+  .auth-card p.sub { color: var(--text-dim); margin: 0 0 26px; font-size: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .field input {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 9px;
+    padding: 11px 13px;
+    font-size: 14.5px;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--ember-2); }
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--ember-1), var(--ember-2));
+    color: #1A1008;
+    border: none;
+    border-radius: 9px;
+    padding: 12px;
+    font-size: 14.5px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .btn-primary:disabled { opacity: 0.55; cursor: default; }
+  .auth-switch { margin-top: 18px; font-size: 13.5px; color: var(--text-dim); text-align: center; }
+  .auth-switch button { background: none; border: none; color: var(--ember-2); font-weight: 600; padding: 0; font-size: 13.5px; }
+  .auth-error { color: var(--danger); font-size: 13px; margin: -6px 0 14px; }
+
+  /* ---------- Shell / nav ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--ember-1), var(--ember-2)); }
+  .brand span { font-family: "Fraunces", serif; font-weight: 600; font-size: 18px; }
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+    font-size: 16px;
+  }
+
+  .tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 11px; padding: 4px; margin-bottom: 24px; }
+  .tabs button {
+    flex: 1;
+    background: none; border: none;
+    padding: 9px 6px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .tabs button.active { background: var(--panel-raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+
+  /* ---------- Streak hero ---------- */
+  .streak-hero {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow);
+  }
+  .streak-ring-wrap { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+  .streak-ring-wrap svg { transform: rotate(-90deg); }
+  .streak-num {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .streak-num .n { font-family: "Fraunces", serif; font-size: 26px; font-weight: 700; line-height: 1; }
+  .streak-num .flame { font-size: 13px; margin-top: 1px; }
+  .streak-copy h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .streak-copy p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+  .today-date { color: var(--text-faint); font-size: 12px; margin-top: 8px; }
+
+  /* ---------- Add task ---------- */
+  .add-row {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .add-row input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 14px;
+    outline: none;
+  }
+  .add-row input:focus { border-color: var(--ember-2); }
+  .add-row button {
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 0 18px;
+    font-weight: 600;
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .repeat-toggle {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--text-dim);
+    margin: -6px 0 18px 2px;
+    user-select: none;
+  }
+  .repeat-toggle input { accent-color: var(--ember-2); }
+
+  /* ---------- Task list ---------- */
+  .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin: 26px 0 10px; }
+  .task-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 13px 14px;
+    margin-bottom: 8px;
+  }
+  .check {
+    width: 21px; height: 21px;
+    border-radius: 7px;
+    border: 1.5px solid var(--text-faint);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent;
+    font-size: 12px;
+    background: transparent;
+  }
+  .check.done { background: var(--jade); border-color: var(--jade); color: #0B221D; }
+  .task-title { flex: 1; font-size: 14.5px; }
+  .task-item.done .task-title { text-decoration: line-through; color: var(--text-faint); }
+  .habit-pill {
+    font-size: 10.5px;
+    background: var(--jade-dim);
+    color: var(--jade);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .trash-btn { background: none; border: none; color: var(--text-faint); font-size: 15px; padding: 4px; }
+  .empty-note { color: var(--text-faint); font-size: 13.5px; padding: 18px 4px; }
+
+  /* ---------- Calendar ---------- */
+  .cal-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-top: 26px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-head .month-label { font-family: "Fraunces", serif; font-size: 15px; font-weight: 600; }
+  .cal-nav button { background: var(--panel-raised); border: 1px solid var(--border); color: var(--text-dim); width: 28px; height: 28px; border-radius: 7px; margin-left: 6px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-dow { text-align: center; font-size: 10.5px; color: var(--text-faint); padding-bottom: 4px; }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    background: var(--panel-raised);
+  }
+  .cal-cell.blank { background: none; }
+  .cal-cell.full { background: linear-gradient(135deg, var(--ember-1), var(--ember-2)); color: #1A1008; font-weight: 700; }
+  .cal-cell.partial { background: var(--jade-dim); color: var(--jade); font-weight: 600; }
+  .cal-cell.today { box-shadow: inset 0 0 0 1.5px var(--ember-2); }
+
+  /* ---------- Leaderboard ---------- */
+  .lb-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px 24px; text-align: center; }
+  .lb-card .big { font-size: 30px; margin-bottom: 8px; }
+  .lb-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .lb-card p { color: var(--text-dim); font-size: 13.5px; margin: 0; line-height: 1.5; }
+  .lb-row { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; margin-bottom: 8px; }
+  .lb-rank { font-family: "IBM Plex Mono", monospace; color: var(--text-faint); font-size: 13px; width: 20px; }
+  .lb-name { flex: 1; font-size: 14px; }
+  .lb-streak { font-size: 13px; color: var(--ember-2); font-weight: 700; }
+
+  /* ---------- Profile ---------- */
+  .profile-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 24px; text-align: center; margin-bottom: 16px; }
+  .avatar {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--ember-1), var(--ember-2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Fraunces", serif; font-size: 24px; font-weight: 700; color: #1A1008;
+    margin: 0 auto 14px;
+  }
+  .profile-card h2 { margin: 0 0 4px; font-size: 17px; }
+  .profile-card p { margin: 0; color: var(--text-faint); font-size: 13px; }
+  .settings-list { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .settings-row:last-child { border-bottom: none; }
+  .theme-switch { display: flex; background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .theme-switch button { background: none; border: none; padding: 5px 12px; font-size: 12.5px; border-radius: 6px; color: var(--text-dim); }
+  .theme-switch button.active { background: var(--ink); color: var(--text); }
+  [data-theme="light"] .theme-switch button.active { background: #fff; color: var(--text); }
+  .logout-btn { background: none; border: none; color: var(--danger); font-size: 14px; font-weight: 600; padding: 15px 18px; width: 100%; text-align: left; }
+
+  .loading-note { color: var(--text-faint); font-size: 13px; text-align: center; padding: 40px 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ring-progress { transition: stroke-dashoffset 0.6s ease; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback } = React;
+
+const API_BASE = "http://127.0.0.1:8000";
+
+function apiFetch(path, token, options) {
+  options = options || {};
+  const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+  if (token) headers.Authorization = "Bearer " + token;
+  return fetch(API_BASE + path, Object.assign({}, options, { headers })).then(async (res) => {
+    if (!res.ok) {
+      let detail = "Что-то пошло не так";
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      throw new Error(detail);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  });
+}
+
+function StreakRing({ streak }) {
+  const size = 92, stroke = 7, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const pct = Math.min(streak / 14, 1);
+  const offset = c - pct * c;
+  return (
+    <div className="streak-ring-wrap">
+      <svg width={size} height={size}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
+        <defs>
+          <linearGradient id="emberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--ember-1)" />
+            <stop offset="100%" stopColor="var(--ember-2)" />
+          </linearGradient>
+        </defs>
+        <circle className="ring-progress" cx={size/2} cy={size/2} r={r} fill="none" stroke="url(#emberGrad)"
+          strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={streak === 0 ? c : offset} />
+      </svg>
+      <div className="streak-num">
+        <div className="n">{streak}</div>
+        <div className="flame">{streak > 0 ? "🔥" : "—"}</div>
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ onAuthed }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      if (mode === "register") {
+        await apiFetch("/auth/register", null, {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        });
+      }
+      const loginData = await apiFetch("/auth/login", null, {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      onAuthed(loginData.access_token, email);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-mark">🔥</div>
+        <h1>{mode === "login" ? "С возвращением" : "Начнём стрик"}</h1>
+        <p className="sub">
+          {mode === "login" ? "Войди, чтобы увидеть свои задачи" : "Заведи аккаунт за пару секунд"}
+        </p>
+        <form onSubmit={submit}>
+          <div className="field">
+            <label>Почта</label>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          </div>
+          <div className="field">
+            <label>Пароль</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+          </div>
+          {error && <div className="auth-error">{error}</div>}
+          <button className="btn-primary" disabled={busy} type="submit">
+            {busy ? "Секунду…" : mode === "login" ? "Войти" : "Зарегистрироваться"}
+          </button>
+        </form>
+        <div className="auth-switch">
+          {mode === "login" ? "Ещё нет аккаунта? " : "Уже есть аккаунт? "}
+          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
+            {mode === "login" ? "Создать" : "Войти"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TasksTab({ token, tasks, streak, refresh }) {
+  const [title, setTitle] = useState("");
+  const [repeat, setRepeat] = useState(false);
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todaysTasks = tasks.filter((t) => t.task_date === todayStr);
+
+  const addItem = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    try {
+      if (repeat) {
+        await apiFetch("/habits/", token, { method: "POST", body: JSON.stringify({ title }) });
+      } else {
+        await apiFetch("/tasks/", token, { method: "POST", body: JSON.stringify({ title }) });
+      }
+      setTitle("");
+      setRepeat(false);
+      refresh();
+    } catch (err) { alert(err.message); }
+  };
+
+  const toggleComplete = async (task) => {
+    if (task.is_done) return;
+    try {
+      await apiFetch(`/tasks/${task.id}/complete`, token, { method: "PATCH" });
+      refresh();
+    } catch (err) { alert(err.message); }
+  };
+
+  const removeTask = async (task) => {
+    try {
+      await apiFetch(`/tasks/${task.id}`, token, { method: "DELETE" });
+      refresh();
+    } catch (err) { alert(err.message); }
+  };
+
+  // calendar math
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + monthOffset);
+  const year = base.getFullYear(), month = base.getMonth();
+  const monthLabel = base.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Monday-start
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const byDate = {};
+  tasks.forEach((t) => {
+    if (!byDate[t.task_date]) byDate[t.task_date] = [];
+    byDate[t.task_date].push(t);
+  });
+
+  const cells = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const dow = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+  return (
+    <React.Fragment>
+      <div className="streak-hero">
+        <StreakRing streak={streak} />
+        <div className="streak-copy">
+          <h2>{streak > 0 ? `Стрик держится ${streak} ${dayWord(streak)} подряд` : "Стрик пока не начат"}</h2>
+          <p>Закрывай все задачи дня, чтобы огонёк не погас.</p>
+          <div className="today-date mono">{new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</div>
+        </div>
+      </div>
+
+      <form className="add-row" onSubmit={addItem}>
+        <input placeholder="Новая задача…" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <button type="submit">Добавить</button>
+      </form>
+      <label className="repeat-toggle">
+        <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+        Повторять каждый день (привычка)
+      </label>
+
+      <div className="section-label">Сегодня</div>
+      {todaysTasks.length === 0 && <div className="empty-note">На сегодня пока пусто — самое время что-нибудь добавить.</div>}
+      {todaysTasks.map((t) => (
+        <div key={t.id} className={"task-item" + (t.is_done ? " done" : "")}>
+          <button className={"check" + (t.is_done ? " done" : "")} onClick={() => toggleComplete(t)}>
+            {t.is_done ? "✓" : ""}
+          </button>
+          <div className="task-title">{t.title}</div>
+          {t.habit_template_id && <span className="habit-pill">привычка</span>}
+          <button className="trash-btn" onClick={() => removeTask(t)}>✕</button>
+        </div>
+      ))}
+
+      <div className="cal-card">
+        <div className="cal-head">
+          <div className="month-label" style={{ textTransform: "capitalize" }}>{monthLabel}</div>
+          <div className="cal-nav">
+            <button onClick={() => setMonthOffset(monthOffset - 1)}>‹</button>
+            <button onClick={() => setMonthOffset(monthOffset + 1)}>›</button>
+          </div>
+        </div>
+        <div className="cal-grid">
+          {dow.map((d) => <div key={d} className="cal-dow">{d}</div>)}
+          {cells.map((d, i) => {
+            if (d === null) return <div key={i} className="cal-cell blank" />;
+            const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const dayTasks = byDate[dateStr] || [];
+            const allDone = dayTasks.length > 0 && dayTasks.every((t) => t.is_done);
+            const someDone = dayTasks.length > 0 && dayTasks.some((t) => t.is_done) && !allDone;
+            let cls = "cal-cell";
+            if (allDone) cls += " full"; else if (someDone) cls += " partial";
+            if (dateStr === todayStr) cls += " today";
+            return <div key={i} className={cls}>{d}</div>;
+          })}
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function dayWord(n) {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "день";
+  if ([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) return "дня";
+  return "дней";
+}
+
+function LeaderboardTab() {
+  return (
+    <div className="lb-card">
+      <div className="big">🏆</div>
+      <h3>Таблица лидеров скоро</h3>
+      <p>Сюда добавим сравнение стриков со всеми, кто пользуется трекером — как только на бэкенде появится нужный эндпоинт.</p>
+    </div>
+  );
+}
+
+function ProfileTab({ email, streak, theme, setTheme, onLogout }) {
+  const initial = (email || "?")[0].toUpperCase();
+  return (
+    <React.Fragment>
+      <div className="profile-card">
+        <div className="avatar">{initial}</div>
+        <h2>{email}</h2>
+        <p>Текущий стрик — {streak} {dayWord(streak)}</p>
+      </div>
+      <div className="settings-list">
+        <div className="settings-row">
+          <span>Тема</span>
+          <div className="theme-switch">
+            <button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>Тёмная</button>
+            <button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>Светлая</button>
+          </div>
+        </div>
+        <button className="logout-btn" onClick={onLogout}>Выйти из аккаунта</button>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function MainApp({ token, email, onLogout }) {
+  const [tab, setTab] = useState("tasks");
+  const [tasks, setTasks] = useState([]);
+  const [streak, setStreak] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => { document.body.setAttribute("data-theme", theme); }, [theme]);
+
+  const refresh = useCallback(async () => {
+    try {
+      const [taskList, streakData] = await Promise.all([
+        apiFetch("/tasks/", token),
+        apiFetch("/tasks/streak", token),
+      ]);
+      setTasks(taskList);
+      setStreak(streakData.streak);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return (
+    <div className="app-shell">
+      <div className="topbar">
+        <div className="brand">
+          <div className="brand-mark"></div>
+          <span>Ember</span>
+        </div>
+        <button className="icon-btn" onClick={() => setTab("profile")}>⚙</button>
+      </div>
+
+      <div className="tabs">
+        <button className={tab === "tasks" ? "active" : ""} onClick={() => setTab("tasks")}>Мои задачи</button>
+        <button className={tab === "leaderboard" ? "active" : ""} onClick={() => setTab("leaderboard")}>Топ стриков</button>
+        <button className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>Профиль</button>
+      </div>
+
+      {loading ? (
+        <div className="loading-note">Загружаю…</div>
+      ) : tab === "tasks" ? (
+        <TasksTab token={token} tasks={tasks} streak={streak} refresh={refresh} />
+      ) : tab === "leaderboard" ? (
+        <LeaderboardTab />
+      ) : (
+        <ProfileTab email={email} streak={streak} theme={theme} setTheme={setTheme} onLogout={onLogout} />
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [token, setToken] = useState(null);
+  const [email, setEmail] = useState("");
+
+  if (!token) {
+    return <AuthScreen onAuthed={(t, e) => { setToken(t); setEmail(e); }} />;
+  }
+  return <MainApp token={token} email={email} onLogout={() => { setToken(null); setEmail(""); }} />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
